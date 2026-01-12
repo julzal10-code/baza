@@ -1,5 +1,6 @@
 import streamlit as st
 from supabase import create_client, Client
+import pandas as pd
 
 # --- KONFIGURACJA POŁĄCZENIA ---
 # Wklej tutaj swoje dane z panelu Supabase
@@ -102,34 +103,52 @@ with tab3:
         except Exception as e:
             st.error(f"Błąd pobierania kategorii: {e}")
     
-    with col2:
+   with col2:
         st.subheader("Produkty")
         try:
-            # Pobieramy dane produktów
-            prod_view = supabase.table("Produkty").select("id, nazwa, liczba, cena").execute()
-            products = prod_view.data
+            prod_res = supabase.table("Produkty").select("*").execute()
+            if prod_res.data:
+                df = pd.DataFrame(prod_res.data)
 
-            if products:
-                # Wyświetlamy tabelę
-                st.dataframe(products, use_container_width=True)
+                # Logika filtrów (korzysta z wartości z Sidebar)
+                if search_query:
+                    df = df[df['nazwa'].str.contains(search_query, case=False)]
                 
-                # --- FUNKCJA USUWANIA ---
-                st.divider()
-                st.subheader("Usuń produkt")
+                if selected_kat != "Wszystkie":
+                    # Mapowanie nazwy wybranej w sidebarze na ID w bazie
+                    inv_kat_map = {v: k for k, v in kat_map.items()}
+                    df = df[df['kategorie_id'] == inv_kat_map[selected_kat]]
                 
-                # Tworzymy listę produktów do wyboru (opcja: Nazwa (ID))
-                delete_options = {f"{p['nazwa']} (ID: {p['id']})": p['id'] for p in products}
-                selected_to_delete = st.selectbox("Wybierz produkt do usunięcia", options=list(delete_options.keys()))
+                df = df[df['cena'] <= max_price]
+
+                # Wyświetlanie przefiltrowanej tabeli
+                st.dataframe(df, use_container_width=True)
                 
-                if st.button("Usuń zaznaczony produkt", type="primary"):
-                    prod_id = delete_options[selected_to_delete]
-                    try:
-                        supabase.table("Produkty").delete().eq("id", prod_id).execute()
-                        st.success(f"Usunięto produkt: {selected_to_delete}")
-                        st.rerun() # Odśwież stronę, aby zaktualizować listę
-                    except Exception as e:
-                        st.error(f"Błąd podczas usuwania: {e}")
+                # Sekcja usuwania
+                if not df.empty:
+                    st.divider()
+                    to_delete = st.selectbox("Wybierz produkt do usunięcia:", df['nazwa'].tolist())
+                    if st.button("Usuń produkt", type="primary"):
+                        # Pobieramy ID na podstawie nazwy z przefiltrowanego DataFrame
+                        id_del = int(df[df['nazwa'] == to_delete]['id'].values[0])
+                        supabase.table("Produkty").delete().eq("id", id_del).execute()
+                        st.success(f"Usunięto: {to_delete}")
+                        st.rerun()
             else:
-                st.info("Brak produktów.")
+                st.info("Brak produktów w bazie.")
         except Exception as e:
-            st.error(f"Błąd pobierania produktów: {e}")
+            st.error(f"Błąd wyświetlania/filtrowania: {e}")
+
+# --- FILTRY W SIDEBARZE ---
+st.sidebar.header("🔍 Filtrowanie")
+search_query = st.sidebar.text_input("Szukaj produktu")
+
+# Pobranie nazw kategorii do filtra
+try:
+    kat_data = supabase.table("Kategorie").select("id, nazwa").execute().data
+    kat_map = {item['id']: item['nazwa'] for item in kat_data}
+    selected_kat = st.sidebar.selectbox("Kategoria", ["Wszystkie"] + list(kat_map.values()))
+except:
+    selected_kat = "Wszystkie"
+
+max_price = st.sidebar.slider("Cena do (zł)", 0, 10000, 5000)
