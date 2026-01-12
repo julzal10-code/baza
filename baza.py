@@ -91,7 +91,7 @@ with tab1:
 with tab3:
     st.header("Aktualny stan bazy")
     
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 2])
     
     with col1:
         st.subheader("Kategorie")
