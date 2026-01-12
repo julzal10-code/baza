@@ -88,21 +88,48 @@ with tab1:
 # --- PODGLĄD DANYCH ---
 with tab3:
     st.header("Aktualny stan bazy")
-   
+    
     col1, col2 = st.columns(2)
-   
+    
     with col1:
         st.subheader("Kategorie")
-        kat_view = supabase.table("Kategorie").select("id, nazwa, opis").execute()
-        if kat_view.data:
-            st.dataframe(kat_view.data, use_container_width=True)
-        else:
-            st.info("Brak kategorii.")
-   
+        try:
+            kat_view = supabase.table("Kategorie").select("id, nazwa, opis").execute()
+            if kat_view.data:
+                st.dataframe(kat_view.data, use_container_width=True)
+            else:
+                st.info("Brak kategorii.")
+        except Exception as e:
+            st.error(f"Błąd pobierania kategorii: {e}")
+    
     with col2:
         st.subheader("Produkty")
-        prod_view = supabase.table("Produkty").select("id, nazwa, liczba, cena, kategorie_id").execute()
-        if prod_view.data:
-            st.dataframe(prod_view.data, use_container_width=True)
-        else:
-            st.info("Brak produktów.")
+        try:
+            # Pobieramy dane produktów
+            prod_view = supabase.table("Produkty").select("id, nazwa, liczba, cena").execute()
+            products = prod_view.data
+
+            if products:
+                # Wyświetlamy tabelę
+                st.dataframe(products, use_container_width=True)
+                
+                # --- FUNKCJA USUWANIA ---
+                st.divider()
+                st.subheader("Usuń produkt")
+                
+                # Tworzymy listę produktów do wyboru (opcja: Nazwa (ID))
+                delete_options = {f"{p['nazwa']} (ID: {p['id']})": p['id'] for p in products}
+                selected_to_delete = st.selectbox("Wybierz produkt do usunięcia", options=list(delete_options.keys()))
+                
+                if st.button("Usuń zaznaczony produkt", type="primary"):
+                    prod_id = delete_options[selected_to_delete]
+                    try:
+                        supabase.table("Produkty").delete().eq("id", prod_id).execute()
+                        st.success(f"Usunięto produkt: {selected_to_delete}")
+                        st.rerun() # Odśwież stronę, aby zaktualizować listę
+                    except Exception as e:
+                        st.error(f"Błąd podczas usuwania: {e}")
+            else:
+                st.info("Brak produktów.")
+        except Exception as e:
+            st.error(f"Błąd pobierania produktów: {e}")
