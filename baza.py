@@ -3,8 +3,8 @@ from supabase import create_client, Client
 
 # --- KONFIGURACJA POŁĄCZENIA ---
 # Wklej tutaj swoje dane z panelu Supabase
-URL = "https://etptopysjuclxdjzvphs.supabase.co"
-KEY = "sb_publishable_CJoYEh1-NTpfUYI2Q_gd1g_Jprvos28"
+URL = "TWOJ_ADRES_URL_Z_SUPABASE"
+KEY = "TWOJ_KLUCZ_ANON_PUBLIC"
 
 @st.cache_resource
 def init_connection():
@@ -36,7 +36,6 @@ with tab2:
             if kat_nazwa:
                 try:
                     data = {"nazwa": kat_nazwa, "opis": kat_opis}
-ALTER TABLE "Kategorie" DISABLE ROW LEVEL SECURITY
                     supabase.table("Kategorie").insert(data).execute()
                     st.success(f"Dodano kategorię: {kat_nazwa}")
                 except Exception as e:
@@ -107,4 +106,3 @@ with tab3:
             st.dataframe(prod_view.data, use_container_width=True)
         else:
             st.info("Brak produktów.")
-            ALTER TABLE "Kategorie" ENABLE ROW LEVEL SECURITY
