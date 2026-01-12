@@ -107,3 +107,4 @@ with tab3:
             st.dataframe(prod_view.data, use_container_width=True)
         else:
             st.info("Brak produktów.")
+            ALTER TABLE "Kategorie" ENABLE ROW LEVEL SECURITY
