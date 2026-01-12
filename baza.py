@@ -36,6 +36,7 @@ with tab2:
             if kat_nazwa:
                 try:
                     data = {"nazwa": kat_nazwa, "opis": kat_opis}
+ALTER TABLE "Kategorie" DISABLE ROW LEVEL SECURITY
                     supabase.table("Kategorie").insert(data).execute()
                     st.success(f"Dodano kategorię: {kat_nazwa}")
                 except Exception as e:
